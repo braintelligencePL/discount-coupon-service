@@ -11,11 +11,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.example.coupons.domain.model.Country;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.tomakehurst.wiremock.WireMockServer;
-import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
-import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import java.time.Duration;
 import java.util.Optional;
-import java.util.stream.IntStream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -44,18 +41,9 @@ class IpApiGeoIpResolverTest {
                 .requestFactory(ClientHttpRequestFactories.get(timeouts))
                 .build();
 
-        CircuitBreakerRegistry circuitBreakers = CircuitBreakerRegistry.of(CircuitBreakerConfig.custom()
-                .slidingWindowType(CircuitBreakerConfig.SlidingWindowType.COUNT_BASED)
-                .slidingWindowSize(4)
-                .minimumNumberOfCalls(2)
-                .failureRateThreshold(50)
-                .waitDurationInOpenState(Duration.ofSeconds(10))
-                .build());
-
         resolver = new IpApiGeoIpResolver(
                 restClient,
-                Caffeine.newBuilder().maximumSize(100).expireAfterWrite(Duration.ofMinutes(5)).build(),
-                circuitBreakers);
+                Caffeine.newBuilder().maximumSize(100).expireAfterWrite(Duration.ofMinutes(5)).build());
     }
 
     @AfterEach
@@ -95,6 +83,16 @@ class IpApiGeoIpResolverTest {
     }
 
     @Test
+    @DisplayName("should be undetermined on an HTTP error from the provider")
+    void should_be_undetermined_on_an_http_error_from_the_provider() {
+        // given
+        stub(aResponse().withStatus(500));
+
+        // then
+        assertThat(resolver.resolve(PUBLIC_IP)).isEmpty();
+    }
+
+    @Test
     @DisplayName("should cache a successful resolution")
     void should_cache_a_successful_resolution() {
         // given
@@ -106,6 +104,20 @@ class IpApiGeoIpResolverTest {
 
         // then
         assertThat(httpCalls()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("should not cache an undetermined result")
+    void should_not_cache_an_undetermined_result() {
+        // given
+        stub(aResponse().withStatus(500));
+
+        // when
+        resolver.resolve(PUBLIC_IP);
+        resolver.resolve(PUBLIC_IP);
+
+        // then each attempt hits the provider again
+        assertThat(httpCalls()).isEqualTo(2);
     }
 
     @Test
@@ -122,24 +134,5 @@ class IpApiGeoIpResolverTest {
         // then
         assertThat(resolver.resolve("10.0.0.1")).isEmpty();
         assertThat(httpCalls()).isZero();
-    }
-
-    @Test
-    @DisplayName("should stay undetermined and open the circuit on repeated provider errors")
-    void should_stay_undetermined_and_open_the_circuit_on_repeated_provider_errors() {
-        // given
-        stub(aResponse().withStatus(500));
-
-        // when
-        int attempts = 8;
-        long undetermined = IntStream.range(0, attempts)
-                .mapToObj(i -> resolver.resolve("203.0.113." + i))
-                .filter(Optional::isEmpty)
-                .count();
-
-        // then
-        assertThat(undetermined).isEqualTo(attempts);
-        // once the breaker opens, later attempts short-circuit instead of calling out
-        assertThat(httpCalls()).isLessThan(attempts);
     }
 }

@@ -4,9 +4,6 @@ import com.example.coupons.domain.exception.DomainValidationException;
 import com.example.coupons.domain.model.Country;
 import com.example.coupons.application.port.GeoIpResolver;
 import com.github.benmanes.caffeine.cache.Cache;
-import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
-import io.github.resilience4j.circuitbreaker.CircuitBreaker;
-import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Optional;
@@ -14,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 @Component
 class IpApiGeoIpResolver implements GeoIpResolver {
@@ -22,14 +20,10 @@ class IpApiGeoIpResolver implements GeoIpResolver {
 
     private final RestClient restClient;
     private final Cache<String, Country> cache;
-    private final CircuitBreaker circuitBreaker;
 
-    IpApiGeoIpResolver(RestClient geoIpRestClient,
-                       Cache<String, Country> geoIpCache,
-                       CircuitBreakerRegistry circuitBreakerRegistry) {
+    IpApiGeoIpResolver(RestClient geoIpRestClient, Cache<String, Country> geoIpCache) {
         this.restClient = geoIpRestClient;
         this.cache = geoIpCache;
-        this.circuitBreaker = circuitBreakerRegistry.circuitBreaker("geoip");
     }
 
     @Override
@@ -45,11 +39,9 @@ class IpApiGeoIpResolver implements GeoIpResolver {
 
         Optional<Country> result;
         try {
-            result = CircuitBreaker.decorateSupplier(circuitBreaker, () -> callProvider(ip)).get();
-        } catch (CallNotPermittedException e) {
-            log.warn("geo-IP circuit open; treating {} as undetermined", ip);
-            return Optional.empty();
-        } catch (RuntimeException e) {
+            result = callProvider(ip);
+        } catch (RestClientException e) {
+            // timeout, connection failure, or a 4xx/5xx from the provider
             log.warn("geo-IP lookup failed for {}: {}", ip, e.toString());
             return Optional.empty();
         }

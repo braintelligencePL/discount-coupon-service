@@ -6,7 +6,6 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.example.coupons.application.dto.RedeemCoupon;
-import com.example.coupons.application.port.CouponRedemptionRepository;
 import com.example.coupons.application.port.CouponRepository;
 import com.example.coupons.application.port.GeoIpResolver;
 import com.example.coupons.domain.exception.CountryNotAllowedException;
@@ -27,8 +26,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 /**
  * Unit test for the one redemption side-effect a black-box test cannot assert:
- * a country-blocked redemption must not touch the database. The redemption
- * outcomes themselves are covered end-to-end by {@code CouponApiIT},
+ * a country-blocked redemption must not open the write transaction. The
+ * redemption outcomes themselves are covered end-to-end by {@code CouponApiIT},
  * {@code CouponRedemptionApiIT} and {@code CouponRedemptionCountryIT}.
  */
 @ExtendWith(MockitoExtension.class)
@@ -39,7 +38,7 @@ class CouponServiceTest {
     @Mock
     private CouponRepository couponRepository;
     @Mock
-    private CouponRedemptionRepository redemptionRepository;
+    private RedemptionRegistrar redemptionRegistrar;
     @Mock
     private GeoIpResolver geoIpResolver;
 
@@ -47,12 +46,12 @@ class CouponServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new CouponService(couponRepository, redemptionRepository, geoIpResolver, CLOCK);
+        service = new CouponService(couponRepository, geoIpResolver, redemptionRegistrar, CLOCK);
     }
 
     @Test
-    @DisplayName("should run the country check before any database write")
-    void should_run_the_country_check_before_any_database_write() {
+    @DisplayName("should run the country check before the redemption transaction is opened")
+    void should_run_the_country_check_before_the_redemption_transaction_is_opened() {
         // given a PL-only coupon and a caller who resolves to DE
         Coupon plOnly = new Coupon(CouponCode.of("wiosna"), Instant.EPOCH, UsageLimit.of(1), 0, Country.of("PL"));
         when(couponRepository.findByCode(CouponCode.of("wiosna"))).thenReturn(Optional.of(plOnly));
@@ -62,7 +61,7 @@ class CouponServiceTest {
         assertThatThrownBy(() -> service.redeem(new RedeemCoupon("WIOSNA", "user-1", "203.0.113.1")))
                 .isInstanceOf(CountryNotAllowedException.class);
 
-        // then nothing was written to the redemption store
-        verifyNoInteractions(redemptionRepository);
+        // then the transactional write step is never reached
+        verifyNoInteractions(redemptionRegistrar);
     }
 }

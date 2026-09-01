@@ -6,6 +6,32 @@ A REST service for managing discount coupons:
 - **redeem a coupon on behalf of a user**
 - **look one up by code**.
 
+I developed it with Claude Code using a spec-first loop: `plan` → `implement` → `review`, making one small change at a time to keep the context focused. This coexisted with ongoing questions and discussions about design and implementation decisions.
+
+Almost every change is documented under `context/changes/<change-id>/` with its plan, implementation phases, and review. Each phase was reviewed and verified before moving on.
+
+A few changes were made outside this workflow and not documented there. Some changes were also made manually by me, so its not reflected in context folder. 
+
+#### Implemented features:
+
+- **Correlation id** per request for log tracing
+- **OpenAPI / Swagger** docs, and Actuator **health** (liveness/readiness) + **build-info** endpoints
+- **Cache with a Caffeine for** geo-IP lookups (with optional override for local testing)
+- **Layered architecture** (**api** → **application** → **domain**, plain Java; **infrastructure**
+  implements the ports)
+- **PostgreSQL persistence** with a Liquibase-managed schema
+- **One redemption per user** (the optional requirement) — `(coupon_code, user_id)` uniqueness
+
+#### Not implemented 
+
+- **Authentication / authorization** — not required by the task; the redemption request carries
+  an `userId` string that a real system would take from an authenticated principal
+- **CI/CD pipeline** and **cloud deployment** — a production-style Docker image and compose file
+  are provided, but no pipeline or hosting
+- **Coupon validity window / expiry** — only a creation timestamp is stored
+- **Offline geo-IP** — depends on the free `ip-api.com` (rate-limited); no bundled MaxMind DB
+- **Shared geo-IP cache** — the cache is per-instance
+
 ## Quick start
 
 **Prerequisites:** JDK 21 and Docker.
