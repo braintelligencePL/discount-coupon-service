@@ -12,6 +12,8 @@ Few changes are documented under `context/changes/<change-id>/` with its plan, i
 
 Other changes were made outside this workflow and not documented there. Some changes were also made manually by me, so its not reflected in context folder. 
 
+> The .claude skills and context/ are not part of the implementation. I included them as a curiosity and a record of the development process because I think it’s a nice concept.
+
 #### Implemented features:
 
 - **Correlation id** per request for log tracing
