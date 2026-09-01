@@ -6,13 +6,11 @@ A REST service for managing discount coupons:
 - **redeem a coupon on behalf of a user**
 - **look one up by code**.
 
-I developed it with Claude Code using a spec-first loop: `plan` → `implement` → `review` (and skills found in `.claude`), making one small change at a time to keep the context focused. This coexisted with ongoing questions and discussions about design and implementation decisions.
+I built this with Claude Code using a spec-first loop — `plan` → `implement` → `review` (skills live in `.claude/`) — making one small change at a time to keep the context focused, alongside ongoing discussion of design decisions.
 
-Few changes are documented under `context/changes/<change-id>/` with its plan, implementation phases, and review. Each phase was reviewed and verified before moving on.
+A few changes are documented under `context/changes/<change-id>/` with their plan, implementation phases, and review; each phase was verified before moving on. Other changes were made outside that workflow — or by hand — and aren't reflected there.
 
-Other changes were made outside this workflow and not documented there. Some changes were also made manually by me, so its not reflected in context folder. 
-
-> The .claude skills and context/ are not part of the implementation. I included them as a curiosity and a record of the development process because I think it’s a nice concept.
+> `.claude/` and `context/` aren't part of the running service. I kept them in the repo as a record of how it was built, because I think the workflow is worth showing.
 
 #### Implemented features:
 
