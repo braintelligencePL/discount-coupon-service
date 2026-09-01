@@ -63,7 +63,7 @@ class CouponServiceTest {
                 Country.of(country));
     }
 
-    private RedeemCoupon command() {
+    private RedeemCoupon redeem() {
         return new RedeemCoupon("WIOSNA", "user-1", "203.0.113.1");
     }
 
@@ -79,7 +79,7 @@ class CouponServiceTest {
                 .when(redemptionRepository).insert(any());
 
         // when
-        assertThatThrownBy(() -> service.redeem(command())).isInstanceOf(AlreadyRedeemedException.class);
+        assertThatThrownBy(() -> service.redeem(redeem())).isInstanceOf(AlreadyRedeemedException.class);
 
         // then
         verify(couponRepository, never()).incrementUsageIfBelowLimit(any());
@@ -93,7 +93,7 @@ class CouponServiceTest {
         when(geoIpResolver.resolve(anyString())).thenReturn(Optional.of(Country.of("DE")));
 
         // when
-        assertThatThrownBy(() -> service.redeem(command())).isInstanceOf(CountryNotAllowedException.class);
+        assertThatThrownBy(() -> service.redeem(redeem())).isInstanceOf(CountryNotAllowedException.class);
 
         // then
         verifyNoInteractions(redemptionRepository);

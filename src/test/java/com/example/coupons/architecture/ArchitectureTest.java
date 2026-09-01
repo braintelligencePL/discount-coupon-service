@@ -1,7 +1,7 @@
 package com.example.coupons.architecture;
 
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
-import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
 
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
@@ -9,19 +9,24 @@ import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
 
 /**
- * Enforces the pragmatic layered architecture with an inbound / sealed-outbound
- * split of {@code infrastructure}:
+ * Which package may depend on which. Every arrow points toward the domain.
  *
- * <ul>
- *   <li><b>Inbound</b> = {@code api} (controllers, DTOs) + {@code infrastructure.web}
- *       (problem+json advice, correlation-id filter, client-IP resolver) — the HTTP
- *       edge; no layer may depend on it.</li>
- *   <li><b>Infrastructure</b> = {@code infrastructure.persistence} +
- *       {@code infrastructure.geoip} — the outbound adapters; sealed, reachable only
- *       through the ports {@code application} owns.</li>
- *   <li><b>Application</b> — reachable only from Inbound and Infrastructure.</li>
- *   <li><b>Domain</b> — framework-free; reachable from everywhere, depends on nothing.</li>
- * </ul>
+ * <pre>
+ *   api  +  infrastructure.web      the web classes: take requests, send responses
+ *        |
+ *        v
+ *   application                     the business logic
+ *        |
+ *        v
+ *   domain                          plain Java: the model and the rules
+ *
+ *   infrastructure.persistence      talks to the database
+ *   infrastructure.geoip            talks to the geo-IP service
+ *        Spring connects these; no other class imports them
+ * </pre>
+ *
+ * The four rules below just enforce those arrows. If one fails, its
+ * {@code because(...)} text says which arrow was broken.
  */
 @AnalyzeClasses(
         packages = "com.example.coupons",
@@ -29,28 +34,32 @@ import com.tngtech.archunit.lang.ArchRule;
 class ArchitectureTest {
 
     @ArchTest
-    static final ArchRule the_domain_is_pure =
-            noClasses()
-                    .that().resideInAPackage("..domain..")
-                    .should().dependOnClassesThat()
-                    .resideInAnyPackage(
-                            "..api..", "..application..", "..infrastructure..",
-                            "org.springframework..", "jakarta.persistence..",
-                            "com.fasterxml.jackson..", "com.github.benmanes.caffeine..",
-                            "io.github.resilience4j..")
-                    .as("the domain must not reference the outer layers, Spring, persistence, "
-                            + "serialization, caching or resilience libraries");
+    static final ArchRule domain_depends_on_nothing_else =
+            classes().that().resideInAPackage("..domain..")
+                    .should().onlyDependOnClassesThat().resideInAnyPackage("..domain..", "java..")
+                    .because("the domain is plain Java -- it must not use Spring, the database, "
+                            + "JSON, or anything from the other packages");
 
     @ArchTest
-    static final ArchRule respects_layering =
-            layeredArchitecture().consideringOnlyDependenciesInLayers()
-                    .layer("Domain").definedBy("..domain..")
-                    .layer("Application").definedBy("..application..")
-                    .layer("Inbound").definedBy("..api..", "..infrastructure.web..")
-                    .layer("Infrastructure")
-                        .definedBy("..infrastructure.persistence..", "..infrastructure.geoip..")
-                    .whereLayer("Inbound").mayNotBeAccessedByAnyLayer()
-                    .whereLayer("Infrastructure").mayNotBeAccessedByAnyLayer()
-                    .whereLayer("Application").mayOnlyBeAccessedByLayers("Inbound", "Infrastructure")
-                    .whereLayer("Domain").mayOnlyBeAccessedByLayers("Inbound", "Application", "Infrastructure");
+    static final ArchRule application_only_uses_the_domain =
+            noClasses().that().resideInAPackage("..application..")
+                    .should().dependOnClassesThat().resideInAnyPackage("..api..", "..infrastructure..")
+                    .because("the business logic may use the domain and nothing else -- not the web "
+                            + "classes, not the database or geo-IP classes");
+
+    @ArchTest
+    static final ArchRule nothing_uses_the_web_classes =
+            noClasses().that().resideOutsideOfPackages("..api..", "..infrastructure.web..")
+                    .should().dependOnClassesThat().resideInAnyPackage("..api..", "..infrastructure.web..")
+                    .because("the web classes take requests and send responses -- the rest of the app "
+                            + "must not call back into them");
+
+    @ArchTest
+    static final ArchRule nothing_uses_the_database_or_geoip_classes =
+            noClasses().that().resideOutsideOfPackages(
+                            "..infrastructure.persistence..", "..infrastructure.geoip..")
+                    .should().dependOnClassesThat().resideInAnyPackage(
+                            "..infrastructure.persistence..", "..infrastructure.geoip..")
+                    .because("the database and geo-IP classes are reached through interfaces in "
+                            + "application -- no other class should import them directly");
 }
