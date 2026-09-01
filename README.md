@@ -8,9 +8,9 @@ A REST service for managing discount coupons:
 
 I developed it with Claude Code using a spec-first loop: `plan` → `implement` → `review`, making one small change at a time to keep the context focused. This coexisted with ongoing questions and discussions about design and implementation decisions.
 
-Almost every change is documented under `context/changes/<change-id>/` with its plan, implementation phases, and review. Each phase was reviewed and verified before moving on.
+Few changes are documented under `context/changes/<change-id>/` with its plan, implementation phases, and review. Each phase was reviewed and verified before moving on.
 
-A few changes were made outside this workflow and not documented there. Some changes were also made manually by me, so its not reflected in context folder. 
+Other changes were made outside this workflow and not documented there. Some changes were also made manually by me, so its not reflected in context folder. 
 
 #### Implemented features:
 
