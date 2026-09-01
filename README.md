@@ -6,7 +6,7 @@ A REST service for managing discount coupons:
 - **redeem a coupon on behalf of a user**
 - **look one up by code**.
 
-I developed it with Claude Code using a spec-first loop: `plan` → `implement` → `review`, making one small change at a time to keep the context focused. This coexisted with ongoing questions and discussions about design and implementation decisions.
+I developed it with Claude Code using a spec-first loop: `plan` → `implement` → `review` (and skills found in `.claude`), making one small change at a time to keep the context focused. This coexisted with ongoing questions and discussions about design and implementation decisions.
 
 Few changes are documented under `context/changes/<change-id>/` with its plan, implementation phases, and review. Each phase was reviewed and verified before moving on.
 
