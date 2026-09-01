@@ -18,6 +18,7 @@ import java.util.Optional;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.web.client.ClientHttpRequestFactories;
 import org.springframework.boot.web.client.ClientHttpRequestFactorySettings;
@@ -71,50 +72,74 @@ class IpApiGeoIpResolverTest {
     }
 
     @Test
-    void resolves_country_on_a_successful_response() {
+    @DisplayName("should resolve the country on a successful response")
+    void should_resolve_the_country_on_a_successful_response() {
+        // given
         stub(okJson("{\"status\":\"success\",\"countryCode\":\"PL\"}"));
 
+        // when
         Optional<Country> resolved = resolver.resolve(PUBLIC_IP);
 
+        // then
         assertThat(resolved).map(Country::value).contains("PL");
     }
 
     @Test
-    void provider_fail_status_is_undetermined() {
+    @DisplayName("should be undetermined when the provider reports failure")
+    void should_be_undetermined_when_the_provider_reports_failure() {
+        // given
         stub(okJson("{\"status\":\"fail\"}"));
 
+        // then
         assertThat(resolver.resolve(PUBLIC_IP)).isEmpty();
     }
 
     @Test
-    void a_successful_resolution_is_cached() {
+    @DisplayName("should cache a successful resolution")
+    void should_cache_a_successful_resolution() {
+        // given
         stub(okJson("{\"status\":\"success\",\"countryCode\":\"PL\"}"));
 
+        // when
         resolver.resolve(PUBLIC_IP);
         resolver.resolve(PUBLIC_IP);
 
+        // then
         assertThat(httpCalls()).isEqualTo(1);
     }
 
     @Test
-    void a_non_public_ip_is_undetermined_without_calling_the_provider() {
+    @DisplayName("should not call the provider for a loopback IP")
+    void should_not_call_the_provider_for_a_loopback_ip() {
+        // then
         assertThat(resolver.resolve("127.0.0.1")).isEmpty();
+        assertThat(httpCalls()).isZero();
+    }
+
+    @Test
+    @DisplayName("should not call the provider for a private network IP")
+    void should_not_call_the_provider_for_a_private_network_ip() {
+        // then
         assertThat(resolver.resolve("10.0.0.1")).isEmpty();
         assertThat(httpCalls()).isZero();
     }
 
     @Test
-    void repeated_provider_errors_stay_undetermined_and_open_the_circuit() {
+    @DisplayName("should stay undetermined and open the circuit on repeated provider errors")
+    void should_stay_undetermined_and_open_the_circuit_on_repeated_provider_errors() {
+        // given
         stub(aResponse().withStatus(500));
 
+        // when
         int attempts = 8;
         long undetermined = IntStream.range(0, attempts)
                 .mapToObj(i -> resolver.resolve("203.0.113." + i))
                 .filter(Optional::isEmpty)
                 .count();
 
+        // then
         assertThat(undetermined).isEqualTo(attempts);
-        // Once the breaker opens, later attempts short-circuit instead of calling out.
+        // once the breaker opens, later attempts short-circuit instead of calling out
         assertThat(httpCalls()).isLessThan(attempts);
     }
 }

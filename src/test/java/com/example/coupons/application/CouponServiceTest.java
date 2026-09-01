@@ -24,6 +24,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -67,26 +68,34 @@ class CouponServiceTest {
     }
 
     @Test
-    void redemption_row_is_inserted_before_the_counter_update() {
-        // Coupon is at its cap AND the user already redeemed it: the caller must be told
-        // ALREADY_REDEEMED, not USAGE_LIMIT_REACHED — so the insert must run first.
+    @DisplayName("should insert the redemption row before updating the counter")
+    void should_insert_the_redemption_row_before_updating_the_counter() {
+        // given
+        // coupon is at its cap AND the user already redeemed it: the caller must be told
+        // ALREADY_REDEEMED, not USAGE_LIMIT_REACHED — so the insert must run first
         when(couponRepository.findByCode(CouponCode.of("wiosna"))).thenReturn(Optional.of(coupon(1, 1, "PL")));
         when(geoIpResolver.resolve(anyString())).thenReturn(Optional.of(Country.of("PL")));
         doThrow(new AlreadyRedeemedException(CouponCode.of("wiosna"), "user-1"))
                 .when(redemptionRepository).insert(any());
 
+        // when
         assertThatThrownBy(() -> service.redeem(command())).isInstanceOf(AlreadyRedeemedException.class);
 
+        // then
         verify(couponRepository, never()).incrementUsageIfBelowLimit(any());
     }
 
     @Test
-    void country_check_runs_before_any_database_write() {
+    @DisplayName("should run the country check before any database write")
+    void should_run_the_country_check_before_any_database_write() {
+        // given
         when(couponRepository.findByCode(CouponCode.of("wiosna"))).thenReturn(Optional.of(coupon(3, 0, "PL")));
         when(geoIpResolver.resolve(anyString())).thenReturn(Optional.of(Country.of("DE")));
 
+        // when
         assertThatThrownBy(() -> service.redeem(command())).isInstanceOf(CountryNotAllowedException.class);
 
+        // then
         verifyNoInteractions(redemptionRepository);
         verify(couponRepository, never()).incrementUsageIfBelowLimit(any());
     }

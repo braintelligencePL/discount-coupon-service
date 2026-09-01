@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -39,25 +40,30 @@ class CouponApiIT {
     }
 
     @Test
-    void creates_fetches_case_insensitively_and_404s_on_a_miss() {
+    @DisplayName("should create, fetch case-insensitively, and 404 on a miss")
+    void should_create_fetch_case_insensitively_and_404_on_a_miss() {
+        // when a coupon is created
         ResponseEntity<JsonNode> created = rest.postForEntity("/api/v1/coupons",
                 json("{\"code\":\"AUTUMN\",\"maxUses\":2,\"country\":\"PL\"}"), JsonNode.class);
 
+        // then it is stored with a normalized code
         assertThat(created.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(created.getHeaders().getLocation()).isNotNull();
         assertThat(created.getBody().get("code").asText()).isEqualTo("autumn");
         assertThat(created.getBody().get("remainingUses").asInt()).isEqualTo(2);
 
+        // and it can be fetched case-insensitively
         ResponseEntity<JsonNode> fetched = rest.getForEntity("/api/v1/coupons/{code}", JsonNode.class, "autumn");
         assertThat(fetched.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(fetched.getBody().get("code").asText()).isEqualTo("autumn");
 
+        // and an unknown code returns a problem+json 404
         ResponseEntity<JsonNode> miss = rest.getForEntity("/api/v1/coupons/{code}", JsonNode.class, "nope");
         assertThat(miss.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         assertThat(miss.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_PROBLEM_JSON);
         assertThat(miss.getBody().get("code").asText()).isEqualTo("COUPON_NOT_FOUND");
 
-        // a code that differs only in case is a duplicate at the database level
+        // and a code that differs only in case is a duplicate at the database level
         ResponseEntity<JsonNode> dup = rest.postForEntity("/api/v1/coupons",
                 json("{\"code\":\"Autumn\",\"maxUses\":9,\"country\":\"PL\"}"), JsonNode.class);
         assertThat(dup.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
