@@ -1,0 +1,21 @@
+# Integration-test profile (activated via @ActiveProfiles("test")).
+# The JDBC connection is supplied dynamically by the Testcontainers PostgreSQL
+# container through @ServiceConnection, so no datasource URL is configured here.
+# Liquibase runs the real migrations against that container.
+spring:
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+  datasource:
+    hikari:
+      # Headroom for RedemptionConcurrencyIT, which drives many parallel redemptions.
+      maximum-pool-size: 32
+
+geoip:
+  # Tests inject a stub GeoIpResolver; the override flag keeps IP handling
+  # deterministic for the few tests that exercise the web layer directly.
+  allow-ip-override: true
+  base-url: http://localhost:0
+
+logging:
+  level:
+    liquibase: WARN

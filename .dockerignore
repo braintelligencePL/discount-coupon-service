@@ -1,0 +1,7 @@
+target/
+.git/
+.idea/
+.github/
+context/
+*.md
+!README.md

@@ -1,0 +1,19 @@
+# Local development profile — points at the PostgreSQL started by docker-compose.
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/coupons
+    username: coupons
+    password: coupons
+
+geoip:
+  # Allow a request to supply its own client IP so the country rule can be exercised locally
+  allow-ip-override: true
+
+management:
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.example.coupons: DEBUG

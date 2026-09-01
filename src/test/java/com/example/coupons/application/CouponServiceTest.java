@@ -1,0 +1,93 @@
+package com.example.coupons.application;
+
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+
+import com.example.coupons.domain.exception.AlreadyRedeemedException;
+import com.example.coupons.domain.exception.CountryNotAllowedException;
+import com.example.coupons.domain.model.Coupon;
+import com.example.coupons.domain.model.CouponCode;
+import com.example.coupons.domain.model.Country;
+import com.example.coupons.domain.model.UsageLimit;
+import com.example.coupons.application.dto.RedeemCoupon;
+import com.example.coupons.application.port.CouponRedemptionRepository;
+import com.example.coupons.application.port.CouponRepository;
+import com.example.coupons.application.port.GeoIpResolver;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+
+/**
+ * Unit tests for the two redemption ordering guarantees that a black-box integration
+ * test cannot cleanly assert. Create / look-up and the individual failure outcomes
+ * are covered end-to-end by {@code CouponApiIT}, {@code CouponRedemptionApiIT} and
+ * {@code CouponRedemptionCountryIT}.
+ */
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
+class CouponServiceTest {
+
+    private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-06-07T08:09:10Z"), ZoneOffset.UTC);
+
+    @Mock
+    private CouponRepository couponRepository;
+    @Mock
+    private CouponRedemptionRepository redemptionRepository;
+    @Mock
+    private GeoIpResolver geoIpResolver;
+
+    private CouponService service;
+
+    @BeforeEach
+    void setUp() {
+        service = new CouponService(couponRepository, redemptionRepository, geoIpResolver, CLOCK);
+    }
+
+    private Coupon coupon(int maxUses, int currentUses, String country) {
+        return new Coupon(1L, CouponCode.of("wiosna"), Instant.EPOCH, UsageLimit.of(maxUses), currentUses,
+                Country.of(country));
+    }
+
+    private RedeemCoupon command() {
+        return new RedeemCoupon("WIOSNA", "user-1", "203.0.113.1");
+    }
+
+    @Test
+    void redemption_row_is_inserted_before_the_counter_update() {
+        // Coupon is at its cap AND the user already redeemed it: the caller must be told
+        // ALREADY_REDEEMED, not USAGE_LIMIT_REACHED — so the insert must run first.
+        when(couponRepository.findByCode(CouponCode.of("wiosna"))).thenReturn(Optional.of(coupon(1, 1, "PL")));
+        when(geoIpResolver.resolve(anyString())).thenReturn(Optional.of(Country.of("PL")));
+        doThrow(new AlreadyRedeemedException(1L, "user-1")).when(redemptionRepository).insert(any());
+
+        assertThatThrownBy(() -> service.redeem(command())).isInstanceOf(AlreadyRedeemedException.class);
+
+        verify(couponRepository, never()).incrementUsageIfBelowLimit(anyLong());
+    }
+
+    @Test
+    void country_check_runs_before_any_database_write() {
+        when(couponRepository.findByCode(CouponCode.of("wiosna"))).thenReturn(Optional.of(coupon(3, 0, "PL")));
+        when(geoIpResolver.resolve(anyString())).thenReturn(Optional.of(Country.of("DE")));
+
+        assertThatThrownBy(() -> service.redeem(command())).isInstanceOf(CountryNotAllowedException.class);
+
+        verifyNoInteractions(redemptionRepository);
+        verify(couponRepository, never()).incrementUsageIfBelowLimit(anyLong());
+    }
+}

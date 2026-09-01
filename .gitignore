@@ -1,0 +1,22 @@
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+### IntelliJ IDEA ###
+.idea/
+*.iml
+*.ipr
+*.iws
+
+### Eclipse / VS Code ###
+.classpath
+.project
+.settings/
+.vscode/
+
+### OS ###
+.DS_Store
+
+### Logs ###
+*.log
+
+context
