@@ -79,10 +79,10 @@ public class CouponService {
     }
 
     private RedemptionResult registerRedemption(Coupon coupon, String userId, Country resolvedCountry) {
-        CouponRedemption redemption = CouponRedemption.record(coupon.id(), userId, resolvedCountry, clock);
+        CouponRedemption redemption = CouponRedemption.record(coupon.code(), userId, resolvedCountry, clock);
         redemptionRepository.insert(redemption);
 
-        if (couponRepository.incrementUsageIfBelowLimit(coupon.id()) == 0) {
+        if (couponRepository.incrementUsageIfBelowLimit(coupon.code()) == 0) {
             throw new UsageLimitReachedException(coupon.code().value());
         }
 

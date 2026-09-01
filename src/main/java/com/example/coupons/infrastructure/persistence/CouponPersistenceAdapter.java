@@ -36,8 +36,8 @@ class CouponPersistenceAdapter implements CouponRepository {
     }
 
     @Override
-    public int incrementUsageIfBelowLimit(long couponId) {
-        return jpa.incrementUsageIfBelowLimit(couponId);
+    public int incrementUsageIfBelowLimit(CouponCode code) {
+        return jpa.incrementUsageIfBelowLimit(code.value());
     }
 
     private static CouponEntity toNewEntity(Coupon coupon) {
@@ -52,7 +52,6 @@ class CouponPersistenceAdapter implements CouponRepository {
 
     private static Coupon  toDomain(CouponEntity entity) {
         return new Coupon(
-                entity.getId(),
                 new CouponCode(entity.getCode()),
                 entity.getCreatedAt(),
                 UsageLimit.of(entity.getMaxUses()),

@@ -36,7 +36,7 @@ class CouponControllerTest {
     private CouponService couponService;
 
     private static Coupon sampleCoupon() {
-        return new Coupon(1L, CouponCode.of("summer"), Instant.parse("2026-01-01T00:00:00Z"),
+        return new Coupon(CouponCode.of("summer"), Instant.parse("2026-01-01T00:00:00Z"),
                 UsageLimit.of(3), 0, Country.of("PL"));
     }
 

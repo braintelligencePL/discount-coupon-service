@@ -2,7 +2,6 @@ package com.example.coupons.application;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -59,7 +58,7 @@ class CouponServiceTest {
     }
 
     private Coupon coupon(int maxUses, int currentUses, String country) {
-        return new Coupon(1L, CouponCode.of("wiosna"), Instant.EPOCH, UsageLimit.of(maxUses), currentUses,
+        return new Coupon(CouponCode.of("wiosna"), Instant.EPOCH, UsageLimit.of(maxUses), currentUses,
                 Country.of(country));
     }
 
@@ -73,11 +72,12 @@ class CouponServiceTest {
         // ALREADY_REDEEMED, not USAGE_LIMIT_REACHED — so the insert must run first.
         when(couponRepository.findByCode(CouponCode.of("wiosna"))).thenReturn(Optional.of(coupon(1, 1, "PL")));
         when(geoIpResolver.resolve(anyString())).thenReturn(Optional.of(Country.of("PL")));
-        doThrow(new AlreadyRedeemedException(1L, "user-1")).when(redemptionRepository).insert(any());
+        doThrow(new AlreadyRedeemedException(CouponCode.of("wiosna"), "user-1"))
+                .when(redemptionRepository).insert(any());
 
         assertThatThrownBy(() -> service.redeem(command())).isInstanceOf(AlreadyRedeemedException.class);
 
-        verify(couponRepository, never()).incrementUsageIfBelowLimit(anyLong());
+        verify(couponRepository, never()).incrementUsageIfBelowLimit(any());
     }
 
     @Test
@@ -88,6 +88,6 @@ class CouponServiceTest {
         assertThatThrownBy(() -> service.redeem(command())).isInstanceOf(CountryNotAllowedException.class);
 
         verifyNoInteractions(redemptionRepository);
-        verify(couponRepository, never()).incrementUsageIfBelowLimit(anyLong());
+        verify(couponRepository, never()).incrementUsageIfBelowLimit(any());
     }
 }

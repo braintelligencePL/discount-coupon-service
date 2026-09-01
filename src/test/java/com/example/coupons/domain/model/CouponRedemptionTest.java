@@ -16,9 +16,9 @@ class CouponRedemptionTest {
 
     @Test
     void record_stamps_the_time_and_the_resolved_country() {
-        CouponRedemption r = CouponRedemption.record(1L, "user-1", Country.of("PL"), FIXED_CLOCK);
+        CouponRedemption r = CouponRedemption.record(CouponCode.of("wiosna"), "user-1", Country.of("PL"), FIXED_CLOCK);
 
-        assertThat(r.couponId()).isEqualTo(1L);
+        assertThat(r.couponCode()).isEqualTo(CouponCode.of("wiosna"));
         assertThat(r.userId()).isEqualTo("user-1");
         assertThat(r.redeemedAt()).isEqualTo(NOW);
         assertThat(r.resolvedCountry()).isEqualTo(Country.of("PL"));
@@ -28,11 +28,11 @@ class CouponRedemptionTest {
     void rejects_missing_required_fields() {
         assertThatThrownBy(() -> CouponRedemption.record(null, "u", Country.of("PL"), FIXED_CLOCK))
                 .isInstanceOf(DomainValidationException.class);
-        assertThatThrownBy(() -> CouponRedemption.record(1L, "  ", Country.of("PL"), FIXED_CLOCK))
+        assertThatThrownBy(() -> CouponRedemption.record(CouponCode.of("x"), "  ", Country.of("PL"), FIXED_CLOCK))
                 .isInstanceOf(DomainValidationException.class);
-        assertThatThrownBy(() -> CouponRedemption.record(1L, "u", null, FIXED_CLOCK))
+        assertThatThrownBy(() -> CouponRedemption.record(CouponCode.of("x"), "u", null, FIXED_CLOCK))
                 .isInstanceOf(DomainValidationException.class);
-        assertThatThrownBy(() -> new CouponRedemption(1L, "u", null, null))
+        assertThatThrownBy(() -> new CouponRedemption(CouponCode.of("x"), "u", null, null))
                 .isInstanceOf(DomainValidationException.class);
     }
 }

@@ -18,7 +18,6 @@ class CouponTest {
     void create_normalizes_stamps_time_zeroes_the_counter_and_handles_country() {
         Coupon coupon = Coupon.create("  SUMMER ", 3, "de", FIXED_CLOCK);
 
-        assertThat(coupon.id()).isNull();
         assertThat(coupon.code()).isEqualTo(CouponCode.of("summer"));
         assertThat(coupon.createdAt()).isEqualTo(NOW);
         assertThat(coupon.maxUses()).isEqualTo(UsageLimit.of(3));
@@ -31,11 +30,11 @@ class CouponTest {
 
     @Test
     void query_methods_reflect_counter_state() {
-        Coupon fresh = new Coupon(1L, CouponCode.of("a"), NOW, UsageLimit.of(2), 0, Country.of("PL"));
+        Coupon fresh = new Coupon(CouponCode.of("a"), NOW, UsageLimit.of(2), 0, Country.of("PL"));
         assertThat(fresh.isExhausted()).isFalse();
         assertThat(fresh.remainingUses()).isEqualTo(2);
 
-        Coupon exhausted = new Coupon(1L, CouponCode.of("a"), NOW, UsageLimit.of(2), 2, Country.of("PL"));
+        Coupon exhausted = new Coupon(CouponCode.of("a"), NOW, UsageLimit.of(2), 2, Country.of("PL"));
         assertThat(exhausted.isExhausted()).isTrue();
         assertThat(exhausted.remainingUses()).isZero();
     }
@@ -43,16 +42,16 @@ class CouponTest {
     @Test
     void rejects_invalid_state() {
         // missing required fields
-        assertThatThrownBy(() -> new Coupon(null, null, NOW, UsageLimit.of(1), 0, Country.of("PL")))
+        assertThatThrownBy(() -> new Coupon(null, NOW, UsageLimit.of(1), 0, Country.of("PL")))
                 .isInstanceOf(DomainValidationException.class);
-        assertThatThrownBy(() -> new Coupon(null, CouponCode.of("a"), null, UsageLimit.of(1), 0, Country.of("PL")))
+        assertThatThrownBy(() -> new Coupon(CouponCode.of("a"), null, UsageLimit.of(1), 0, Country.of("PL")))
                 .isInstanceOf(DomainValidationException.class);
-        assertThatThrownBy(() -> new Coupon(null, CouponCode.of("a"), NOW, UsageLimit.of(1), 0, null))
+        assertThatThrownBy(() -> new Coupon(CouponCode.of("a"), NOW, UsageLimit.of(1), 0, null))
                 .isInstanceOf(DomainValidationException.class);
         // counter out of range
-        assertThatThrownBy(() -> new Coupon(1L, CouponCode.of("a"), NOW, UsageLimit.of(2), -1, Country.of("PL")))
+        assertThatThrownBy(() -> new Coupon(CouponCode.of("a"), NOW, UsageLimit.of(2), -1, Country.of("PL")))
                 .isInstanceOf(DomainValidationException.class);
-        assertThatThrownBy(() -> new Coupon(1L, CouponCode.of("a"), NOW, UsageLimit.of(2), 3, Country.of("PL")))
+        assertThatThrownBy(() -> new Coupon(CouponCode.of("a"), NOW, UsageLimit.of(2), 3, Country.of("PL")))
                 .isInstanceOf(DomainValidationException.class);
         // factory propagates value-object validation
         assertThatThrownBy(() -> Coupon.create("valid", 0, "PL", FIXED_CLOCK))

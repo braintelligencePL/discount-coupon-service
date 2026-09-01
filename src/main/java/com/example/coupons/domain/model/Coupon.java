@@ -5,7 +5,6 @@ import java.time.Clock;
 import java.time.Instant;
 
 public record Coupon(
-        Long id,
         CouponCode code,
         Instant createdAt,
         UsageLimit maxUses,
@@ -35,7 +34,7 @@ public record Coupon(
     }
 
     public static Coupon create(String rawCode, int maxUses, String rawCountry, Clock clock) {
-        return new Coupon(null, CouponCode.of(rawCode), clock.instant(),
+        return new Coupon(CouponCode.of(rawCode), clock.instant(),
                 UsageLimit.of(maxUses), 0, Country.of(rawCountry));
     }
 

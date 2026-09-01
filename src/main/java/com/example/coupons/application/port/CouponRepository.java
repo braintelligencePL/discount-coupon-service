@@ -11,6 +11,6 @@ public interface CouponRepository {
 
     Optional<Coupon> findByCode(CouponCode code);
 
-    int incrementUsageIfBelowLimit(long couponId);
+    int incrementUsageIfBelowLimit(CouponCode code);
 
 }

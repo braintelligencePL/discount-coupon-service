@@ -27,7 +27,8 @@ public class CouponRedemptionEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long couponId;
+    @Column(length = 64)
+    private String couponCode;
 
     private String userId;
 

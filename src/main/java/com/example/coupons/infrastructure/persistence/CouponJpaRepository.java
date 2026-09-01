@@ -15,8 +15,8 @@ interface CouponJpaRepository extends JpaRepository<CouponEntity, Long> {
     @Query("""
             UPDATE CouponEntity c
                SET c.currentUses = c.currentUses + 1
-             WHERE c.id = :id
+             WHERE c.code = :code
                AND c.currentUses < c.maxUses
             """)
-    int incrementUsageIfBelowLimit(@Param("id") long couponId);
+    int incrementUsageIfBelowLimit(@Param("code") String code);
 }

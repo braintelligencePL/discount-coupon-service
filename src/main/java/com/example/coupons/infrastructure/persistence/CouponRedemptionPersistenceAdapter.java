@@ -21,12 +21,12 @@ class CouponRedemptionPersistenceAdapter implements CouponRedemptionRepository {
         try {
             jpa.saveAndFlush(new CouponRedemptionEntity(
                     null,
-                    redemption.couponId(),
+                    redemption.couponCode().value(),
                     redemption.userId(),
                     redemption.redeemedAt(),
                     redemption.resolvedCountry().value()));
         } catch (DataIntegrityViolationException ex) {
-            throw new AlreadyRedeemedException(redemption.couponId(), redemption.userId());
+            throw new AlreadyRedeemedException(redemption.couponCode(), redemption.userId());
         }
     }
 }
