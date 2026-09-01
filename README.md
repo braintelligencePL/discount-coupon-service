@@ -10,7 +10,7 @@ I built this with Claude Code using a spec-first loop — `plan` → `implement`
 
 A few changes are documented under `context/changes/<change-id>/` with their plan, implementation phases, and review; each phase was verified before moving on. Other changes were made outside that workflow — or by hand — and aren't reflected there.
 
-> `.claude/` and `context/` aren't part of the implementation. I kept them in the repo as a record of how it was built, because I think the workflow is worth showing.
+> `!important :)`  `.claude/` and `context/` aren't part of the implementation. I kept them in the repo as a record of how it was built, because I think the workflow is worth showing.
 
 #### Implemented features:
 
